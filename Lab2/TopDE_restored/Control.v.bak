@@ -1,0 +1,29 @@
+ `ifndef PARAM
+	`include "Parametros.v"
+`endif
+
+
+module CntrlALU (
+    input  [1:0] ALUOP,
+    input  [9:0] func10,
+    output reg [3:0] saida
+);
+    always @(*) begin
+        case (ALUOP)
+            2'b00: saida = OPADD;
+            2'b01: saida = OPSUB;
+            2'b10: begin
+                case (func10)
+                    FUNADD: saida = OPADD;
+                    FUNSUB: saida = OPSUB;
+                    FUNAND: saida = OPAND;
+                    FUNOR : saida = OPOR;
+                    FUNSLT: saida = OPSLT;
+                    default: saida = 4'b0000;
+                endcase
+            end
+            default: saida = 4'b0000;
+        endcase
+    end
+
+endmodule
