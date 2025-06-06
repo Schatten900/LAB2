@@ -11,7 +11,6 @@ module Uniciclo (
 	output logic [31:0] regout
 	);
 	
-	
 	initial
 		begin
 			PC<=TEXT_ADDRESS;
@@ -19,11 +18,19 @@ module Uniciclo (
 			regout<=32'b0;
 		end
 		
-		wire [31:0] SaidaULA, Leitura2, MemData;
-		wire EscreveMem, LeMem;
+		//wire [31:0] SaidaULA, Leitura2, MemData;
+		//wire EscreveMem, LeMem;
+		
+		//assign EscreveMem = 1'b0;
+		//assign LeMem = 1'b1;
+		//assign SaidaULA = 32'b0;
 		
 //******************************************
 // Aqui vai o seu código do seu processador
+
+
+	// Instruction Memory
+	ramI MemC (.address(PC[11:2]), .clock(clockMem), .data(), .wren(1'b0), .rden(1'b1), .q(Instr)); // Memomoria de instruçoes
 
 	// Instruction 
 	wire [6:0] opcode = Instr[6:0];
@@ -43,7 +50,7 @@ module Uniciclo (
 	
 	control ControlUnity (
 		 .OPCODE(opcode),
-		 .constrols(controls)
+		 .controls(controls)
 	);
 	
 	assign ALUSrc   = controls[7];	//MSB
@@ -59,16 +66,21 @@ module Uniciclo (
 	wire [31:0] ReadData1;
 	wire [31:0] ReadData2;
 	wire [31:0] WriteData;
+	wire [31:0] SaidaULA;
+	wire [31:0] MemData; 
 	
 	Registers registers(
-	  //input
+	  //signals
 	 .iCLK(clockCPU),
 	 .iRST(reset), 
 	 .iRegWrite(RegWrite),
+	 
+		//registers
     .iReadRegister1(rs1),
 	 .iReadRegister2(rs2),
 	 .iWriteRegister(rd),
-    .iWriteData(WriteData),
+	 .iWriteData(WriteData),
+
 	 .iRegDispSelect(regin),
 	 
 	  // output
@@ -87,6 +99,7 @@ module Uniciclo (
 	// ALU Control
 	wire [3:0] ALUControl;
 	wire [31:0] ALU_input2;
+	wire zeroControl;
 	assign ALU_input2 = (ALUSrc) ? immediate : ReadData2;
 	
 	CntrlALU ControlALU (
@@ -101,27 +114,25 @@ module Uniciclo (
 	.iControl(ALUControl),
 	.iA(ReadData1), 
 	.iB(ALU_input2),
-	.oResult(SaidaULA)
+	.oResult(SaidaULA),
+	.oZero(zeroControl)
 	);
-
-always @(posedge clockCPU  or posedge reset)
-	if(reset)
-		PC <= TEXT_ADDRESS;
-	else
-		PC <= PC + 32'd4;
-
-		
-		
-assign EscreveMem = 1'b0;
-assign LeMem = 1'b1;
-assign SaidaULA = 32'b0;
-
-
-// Instanciação das memórias
-ramI MemC (.address(PC[11:2]), .clock(clockMem), .data(), .wren(1'b0), .rden(1'b1), .q(Instr));
-ramD MemD (.address(SaidaULA[11:2]), .clock(clockMem), .data(Leitura2), .wren(EscreveMem), .rden(LeMem),.q(MemData));
-		
-
+	
+	// Data memory
+	ramD MemD (.address(SaidaULA[11:2]), .clock(clockMem), .data(ReadData2), .wren(MemWrite), .rden(MemRead),.q(MemData)); 
+	
+	assign WriteData = (MemtoReg) ? MemData : SaidaULA;
+	
+	// Updating PC
+	always @(posedge clockCPU or posedge reset) begin
+		if (reset)
+			PC <= TEXT_ADDRESS;
+		else if (Branch && zeroControl)
+			PC <= PC + immediate;   // Desvio condicional
+		else
+			PC <= PC + 32'd4;       // PC + 4 
+	end
+	
 	
 		
 //*****************************************	
