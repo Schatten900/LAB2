@@ -7,13 +7,14 @@
 `endif
 
 //`define RV32I;
-`define RV32IM;
+//`define RV32IM;
  
 module ALU (
 	input 		 [4:0]  iControl,
 	input signed [31:0] iA, 
 	input signed [31:0] iB,
-	output logic [31:0] oResult
+	output logic [31:0] oResult,
+	output logic        oZero
 	);
 
 //	wire [4:0] iControl=OPDIV;		// Usado para as analises
@@ -33,10 +34,10 @@ begin
 			oResult  <= iA < iB;
 		OPNULL:
 			oResult  <= ZERO;
-			
 		default:
 			oResult  <= ZERO;
     endcase
+	 oZero = (oResult == 32'b0) ? 1'b1 : 1'b0;
 end
 
 endmodule
